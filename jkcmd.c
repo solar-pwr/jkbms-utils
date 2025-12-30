@@ -227,6 +227,7 @@ const struct regSpec jkRegs[] = {
 	{ 0x1418, T_CHAR8, "SoftwareVersion" },
 	{ 0x1420, T_UINT32, "ODDRunTime" },
 	{ 0x1424, T_UINT32, "PWROnTimes" },
+	{ 0x1470, T_CHAR16, "Password" },
 	{ 0x14b2, T_UINT8, "UART1MPRTOLNbr" },
 	{ 0x14b3, T_UINT8, "CANMPRTOLNbr" },
 	{ 0x14b4, T_UINT8, "UART1MPRTOLEnable0" },
@@ -454,7 +455,7 @@ int jkRead(uint8_t addr, int regGroup) {
 		if (memcmp(buf + i, jkSign, sizeof(jkSign)) == 0 &&
 			*(uint16_t*) (buf + i + 4) == regGroup) {
 
-			dataPtr = buf + i;
+			dataPtr = buf + i + 6;
 			goto signOk;
 		}
 	}
