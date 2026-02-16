@@ -227,7 +227,6 @@ const struct regSpec jkRegs[] = {
 	{ 0x1418, T_CHAR8, "SoftwareVersion" },
 	{ 0x1420, T_UINT32, "ODDRunTime" },
 	{ 0x1424, T_UINT32, "PWROnTimes" },
-	{ 0x1470, T_CHAR16, "Password" },
 	{ 0x14b2, T_UINT8, "UART1MPRTOLNbr" },
 	{ 0x14b3, T_UINT8, "CANMPRTOLNbr" },
 	{ 0x14b4, T_UINT8, "UART1MPRTOLEnable0" },
@@ -426,6 +425,7 @@ int openSerial(char *spath) {
 
 int jkRead(uint8_t addr, int regGroup) {
 	int nRead, i;
+	uint8_t chksum;
 
 	// send Modbus request
 	jkCmd[0] = addr;
@@ -451,11 +451,11 @@ int jkRead(uint8_t addr, int regGroup) {
 		return 1;
 	}
 
-	for (i = 0; i < nRead - 6; i++) {
+	for (i = 0; i < nRead - 0x12c; i++) {
 		if (memcmp(buf + i, jkSign, sizeof(jkSign)) == 0 &&
 			*(uint16_t*) (buf + i + 4) == regGroup) {
 
-			dataPtr = buf + i + 6;
+			dataPtr = buf + i;
 			goto signOk;
 		}
 	}
@@ -463,6 +463,16 @@ int jkRead(uint8_t addr, int regGroup) {
 	return 1;
 
 signOk:
+	chksum = 0;
+	for (i = 0; i < 0x12b; i++) {
+		chksum += (int8_t) dataPtr[i];
+	}
+	if (chksum != dataPtr[0x12b]) {
+		fprintf(stderr, "Bad checksum (calc: %02hhx, recv: %02hhx)\n", chksum, dataPtr[i]);
+		return 1;
+	}
+
+	dataPtr += 6;
 	for (i = 0; i < sizeof(jkRegs) / sizeof(jkRegs[0]); i++) {
 		if (jkRegs[i].reg >= regBase && jkRegs[i].reg < regBase + 0x200) {
 			if (jkRegs[i].reg - regBase > nRead) {
@@ -489,7 +499,7 @@ int main(int argc, char *argv[]) {
 		bmsAddr = 1;
 	} else {
 		sscanf(argv[2], "%i", &bmsAddr);
-		if (bmsAddr < 1 || bmsAddr > 15) {
+		if (bmsAddr < 0 || bmsAddr > 15) {
 			fprintf(stderr, "Wrong BMS address\n");
 			return 1;
 		}
