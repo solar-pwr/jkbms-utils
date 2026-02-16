@@ -15,4 +15,5 @@ Use protocol **001 - BMS RS485 Modbus**.
 - 2 gnd
 - 3 swdio
 - 4 swclk
+- --key--
 - 5 vdd
